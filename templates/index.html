@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmotionAI — Premium Emotion Intelligence</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="state-input">
+
+    <!-- Ambient moving auroras -->
+    <div class="aurora-wrapper">
+        <div class="aurora aurora-1" id="aurora1"></div>
+        <div class="aurora aurora-2" id="aurora2"></div>
+    </div>
+
+    <!-- Noise Overlay -->
+    <div class="noise-overlay"></div>
+
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="brand">
+                <svg class="logo-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM15.5 13.5C14.8 14.7 13.5 15.5 12 15.5C10.5 15.5 9.2 14.7 8.5 13.5C8.3 13.2 8.4 12.8 8.7 12.6C9.0 12.4 9.4 12.5 9.6 12.8C10.1 13.6 11.0 14 12.0 14C13.0 14 13.9 13.6 14.4 12.8C14.6 12.5 15.0 12.4 15.3 12.6C15.6 12.8 15.7 13.2 15.5 13.5ZM9 10.5C9.8 10.5 10.5 9.8 10.5 9C10.5 8.2 9.8 7.5 9 7.5C8.2 7.5 7.5 8.2 7.5 9C7.5 9.8 8.2 10.5 9 10.5ZM15 10.5C15.8 10.5 16.5 9.8 16.5 9C16.5 8.2 15.8 7.5 15 7.5C14.2 7.5 13.5 8.2 13.5 9C13.5 9.8 14.2 10.5 15 10.5Z"
+                        fill="url(#brandGrad)" />
+                    <defs>
+                        <linearGradient id="brandGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#c084fc" />
+                            <stop offset="100%" stop-color="#60a5fa" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span class="brand-name">EmotionAI</span>
+            </div>
+
+            <div class="system-status">
+                <span class="status-indicator"></span>
+                <span class="status-label">RoBERTa Pipeline Ready</span>
+            </div>
+        </header>
+
+        <main class="workspace">
+
+            <!-- SECTION 1: HERO & INPUT PANEL -->
+            <section class="panel input-panel" id="inputPanel">
+                <div class="hero-container">
+                    <h1 class="hero-title">Understand the <br><span class="highlight-text">emotion</span> behind your
+                        words.</h1>
+                    <p class="hero-subtitle">
+                        Emotia parses syntactic cues and extracts multi-label emotional signals from natural user text
+                        using pre-trained self-attention representations.
+                    </p>
+                </div>
+
+                <div class="interactive-card editor-card">
+                    <div class="card-header">
+                        <span class="panel-meta">ANALYSIS ENGINE</span>
+                        <div class="header-actions">
+                            <span class="char-limit" id="charCounter">0 / 500</span>
+                        </div>
+                    </div>
+
+                    <div class="textarea-wrapper">
+                        <textarea id="rawTextInput" maxlength="500" placeholder="Tell me what's on your mind..."
+                            oninput="updateCharCount()"></textarea>
+                    </div>
+
+                    <div class="card-actions">
+                        <button id="clearInputBtn" class="action-btn text-btn" onclick="resetEditor()">
+                            Clear
+                        </button>
+                        <button id="submitBtn" class="action-btn primary-btn" onclick="executeInference()">
+                            Analyze Emotion
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PRESET PROMPTS -->
+                <div class="presets-container">
+                    <span class="presets-heading">INTERACTIVE EXAMPLES</span>
+                    <div class="presets-list">
+                        <button class="preset-chip" onclick="applyPreset(this)">I can't believe we actually
+                            won!</button>
+                        <button class="preset-chip" onclick="applyPreset(this)">I HAAAAATE this sooo much!!!</button>
+                        <button class="preset-chip" onclick="applyPreset(this)">That was unexpectedly kind of
+                            you</button>
+                        <button class="preset-chip" onclick="applyPreset(this)">Great, another problem.</button>
+                        <button class="preset-chip" onclick="applyPreset(this)">you are good for nothing</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: LOADING PROGRESS STATE -->
+            <section class="panel loading-panel" id="loadingPanel" style="display: none;">
+                <div class="loading-center">
+                    <div class="progress-ring">
+                        <svg width="80" height="80">
+                            <circle class="ring-track" cx="40" cy="40" r="34"></circle>
+                            <circle class="ring-fill" cx="40" cy="40" r="34"></circle>
+                        </svg>
+                        <div class="ring-dot"></div>
+                    </div>
+                    <h3 class="loading-title" id="loadingStateText">Analyzing your words...</h3>
+                    <p class="loading-desc">Consulting 28-dimensional multi-label attention matrices.</p>
+                </div>
+            </section>
+
+            <!-- SECTION 3: RESULTS PANEL -->
+            <section class="panel results-panel" id="resultsPanel" style="display: none;">
+
+                <!-- DYNAMIC ACCENT HEADER -->
+                <div class="results-action-row">
+                    <button class="action-btn outline-btn" onclick="returnToInput()">
+                        ← Analyze another text
+                    </button>
+                </div>
+
+                <div class="results-grid">
+
+                    <!-- LEFT COLUMN: PRIMARY EMOTION CARD -->
+                    <div class="results-left">
+                        <div class="interactive-card centerpiece-card" id="centerpieceCard">
+                            <div class="centerpiece-halo" id="centerpieceHalo"></div>
+
+                            <div class="centerpiece-content">
+                                <div class="primary-visual-wrapper">
+                                    <div class="visual-orb" id="visualOrb"></div>
+                                    <div class="visual-emoji" id="primaryEmoji">😐</div>
+                                </div>
+
+                                <span class="panel-meta text-center font-bold tracking-wider">PRIMARY EMOTION</span>
+                                <h2 class="centerpiece-emotion" id="primaryEmotionName">Neutral</h2>
+                                <div class="centerpiece-score" id="primaryScore">0%</div>
+                                <p class="centerpiece-desc" id="primaryDescription">
+                                    No strong sentiment features mapped in the token representation.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: DETAILED LINGUISTIC & CHART DETAILS -->
+                    <div class="results-right">
+
+                        <!-- LINGUISTIC DIFF PANEL -->
+                        <div class="interactive-card details-card">
+                            <div class="card-header">
+                                <span class="panel-meta">LINGUISTIC SANITIZER DIFF</span>
+                            </div>
+
+                            <div class="diff-container">
+                                <div class="diff-block">
+                                    <span class="diff-label">ORIGINAL</span>
+                                    <div class="diff-content original-diff" id="diffOriginal"></div>
+                                </div>
+                                <div class="diff-block">
+                                    <span class="diff-label">NORMALIZED</span>
+                                    <div class="diff-content normalized-diff" id="diffNormalized"></div>
+                                </div>
+                            </div>
+
+                            <!-- LINGUISTIC SIGNALS CHIPS -->
+                            <div class="signals-block">
+                                <span class="diff-label">DETECTED CORPUS SIGNALS</span>
+                                <div class="signals-list" id="signalsList">
+                                    <!-- Dynamic -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- OTHER DETECTED EMOTIONS CHART -->
+                        <div class="interactive-card chart-card">
+                            <div class="card-header">
+                                <span class="panel-meta">DETAILED PROBABILITIES</span>
+                            </div>
+                            <div class="chart-wrapper" id="emotionsChartList">
+                                <!-- Dynamic -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- HOW IT WORKS STEPPER -->
+                <div class="stepper-section">
+                    <span class="panel-meta text-center block mb-8">PIPELINE EXECUTION FLOW</span>
+                    <div class="stepper-track">
+                        <div class="step-connector" id="stepConnectorLine"></div>
+                        <div class="step-node" id="node1">
+                            <div class="node-circle">1</div>
+                            <span class="node-title">Ingress Sanitizer</span>
+                            <span class="node-desc">Expanded shorthand</span>
+                        </div>
+                        <div class="step-node" id="node2">
+                            <div class="node-circle">2</div>
+                            <span class="node-title">Normalizer</span>
+                            <span class="node-desc">Collapsed repetition</span>
+                        </div>
+                        <div class="step-node" id="node3">
+                            <div class="node-circle">3</div>
+                            <span class="node-title">Transformer encoding</span>
+                            <span class="node-desc">Context attention</span>
+                        </div>
+                        <div class="step-node" id="node4">
+                            <div class="node-circle">4</div>
+                            <span class="node-title">Multi-label thresholds</span>
+                            <span class="node-desc">F1-max filtration</span>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+    </div>
+
+    <!-- SCRIPT FOR COMPOSITION & INTERACTION -->
+    <script>
+        // GoEmotions category definition to assign color themes to the auroras and orb centerpiece
+        const THEME_MAPPING = {
+            // Theme Positive (Gold/Emerald)
+            admiration: { theme: "positive", emoji: "⭐", desc: "Expresses respect, high esteem, or warm approval." },
+            amusement: { theme: "positive", emoji: "😸", desc: "Reflects humor, playfulness, or lighthearted fun." },
+            approval: { theme: "positive", emoji: "👍", desc: "Indicates agreement, validation, or validation." },
+            caring: { theme: "positive", emoji: "🤗", desc: "Conveys active concern, kindness, and empathy." },
+            desire: { theme: "positive", emoji: "💫", desc: "Conveys craving, wishing, or longing." },
+            excitement: { theme: "positive", emoji: "🚀", desc: "Radiates high energy, enthusiasm, or anticipation." },
+            gratitude: { theme: "positive", emoji: "🙏", desc: "Expresses appreciation, thankfulness, or acknowledgement." },
+            joy: { theme: "positive", emoji: "✨", desc: "Conveys delight, happiness, and well-being." },
+            love: { theme: "positive", emoji: "💖", desc: "Conveys deep affection, warmth, and attachment." },
+            optimism: { theme: "positive", emoji: "🌅", desc: "Expresses hopefulness and confidence in outcomes." },
+            pride: { theme: "positive", emoji: "👑", desc: "Conveys self-satisfaction, achievement, or dignity." },
+            relief: { theme: "positive", emoji: "😌", desc: "Indicates a reassuring release from tension or worry." },
+
+            // Theme Negative (Crimson)
+            anger: { theme: "negative", emoji: "🔥", desc: "Indicates strong frustration, hostility, or rage." },
+            annoyance: { theme: "negative", emoji: "⚡", desc: "Expresses mild irritation, impatience, or bother." },
+            disapproval: { theme: "negative", emoji: "👎", desc: "Conveys negative judgment, critique, or disagreement." },
+            disgust: { theme: "negative", emoji: "🤢", desc: "Reflects intense aversion, revulsion, or distaste." },
+
+            // Theme Melancholy (Indigo/Blue)
+            disappointment: { theme: "melancholy", emoji: "😔", desc: "Expresses sadness from unfulfilled expectations." },
+            fear: { theme: "melancholy", emoji: "😨", desc: "Indicates apprehension, dread, or awareness of danger." },
+            grief: { theme: "melancholy", emoji: "💧", desc: "Conveys deep sorrow, mourning, or profound loss." },
+            nervousness: { theme: "melancholy", emoji: "😰", desc: "Conveys anxiety, tension, or standard apprehension." },
+            sadness: { theme: "melancholy", emoji: "😢", desc: "Conveys low spirits, sorrow, or unhappiness." },
+            remorse: { theme: "melancholy", emoji: "🥺", desc: "Expresses regret, self-reproach, or guilt." },
+            embarrassment: { theme: "melancholy", emoji: "😳", desc: "Conveys self-consciousness or social awkwardness." },
+
+            // Theme Surprise (Violet/Cyan)
+            confusion: { theme: "surprise", emoji: "🌀", desc: "Indicates uncertainty, bewilderment, or lack of clarity." },
+            curiosity: { theme: "surprise", emoji: "👀", desc: "Expresses interest or a desire to discover more." },
+            realization: { theme: "surprise", emoji: "💡", desc: "Indicates sudden understanding, discovery, or clarity." },
+            surprise: { theme: "surprise", emoji: "😮", desc: "Conveys astonishment, shock, or sudden wonder." },
+
+            // Theme Neutral (Muted)
+            neutral: { theme: "neutral", emoji: "😐", desc: "Reflects objective, factual, and balanced text." }
+        };
+
+        // Track state timings
+        let stateTimeout = null;
+
+        function updateCharCount() {
+            const textarea = document.getElementById("rawTextInput");
+            const counter = document.getElementById("charCounter");
+            const length = textarea.value.length;
+
+            counter.textContent = `${length} / 500`;
+            if (length >= 450) {
+                counter.style.color = "var(--accent-red)";
+            } else if (length >= 350) {
+                counter.style.color = "var(--accent-orange, #f97316)";
+            } else {
+                counter.style.color = "var(--text-secondary)";
+            }
+        }
+
+        function applyPreset(btn) {
+            const textarea = document.getElementById("rawTextInput");
+            textarea.value = btn.textContent;
+            updateCharCount();
+            executeInference();
+        }
+
+        function resetEditor() {
+            const textarea = document.getElementById("rawTextInput");
+            textarea.value = "";
+            updateCharCount();
+            textarea.focus();
+        }
+
+        // Return to input interface with animation
+        function returnToInput() {
+            const body = document.body;
+            const inputPanel = document.getElementById("inputPanel");
+            const resultsPanel = document.getElementById("resultsPanel");
+
+            // Scroll up smoothly first
+            window.scrollTo({ top: 0, behavior: "smooth" });
+
+            // Transition states
+            resultsPanel.classList.add("fade-out-up");
+
+            setTimeout(() => {
+                resultsPanel.style.display = "none";
+                resultsPanel.classList.remove("fade-out-up");
+
+                inputPanel.style.display = "block";
+                inputPanel.classList.add("fade-in-up");
+
+                body.className = "state-input";
+
+                // Reset auroras to neutral
+                updateAuroras("neutral");
+
+                setTimeout(() => {
+                    inputPanel.classList.remove("fade-in-up");
+                    document.getElementById("rawTextInput").focus();
+                }, 400);
+            }, 300);
+        }
+
+        // Animate count-up of values
+        function animateValue(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                // Ease out quad
+                const easedProgress = progress * (2 - progress);
+                const currentVal = Math.floor(easedProgress * (end - start) + start);
+                element.textContent = `${currentVal}%`;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    element.textContent = `${end}%`;
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Update background auroras according to active category
+        function updateAuroras(theme) {
+            const aurora1 = document.getElementById("aurora1");
+            const aurora2 = document.getElementById("aurora2");
+
+            let color1 = "rgba(168, 85, 247, 0.12)";
+            let color2 = "rgba(59, 130, 246, 0.08)";
+
+            if (theme === "positive") {
+                color1 = "rgba(16, 185, 129, 0.15)";
+                color2 = "rgba(245, 158, 11, 0.08)";
+            } else if (theme === "negative") {
+                color1 = "rgba(244, 63, 94, 0.16)";
+                color2 = "rgba(239, 68, 68, 0.06)";
+            } else if (theme === "melancholy") {
+                color1 = "rgba(99, 102, 241, 0.14)";
+                color2 = "rgba(59, 130, 246, 0.1)";
+            } else if (theme === "surprise") {
+                color1 = "rgba(6, 182, 212, 0.15)";
+                color2 = "rgba(139, 92, 246, 0.08)";
+            } else if (theme === "neutral") {
+                color1 = "rgba(148, 163, 184, 0.08)";
+                color2 = "rgba(71, 85, 105, 0.05)";
+            }
+
+            aurora1.style.background = `radial-gradient(circle, ${color1} 0%, transparent 70%)`;
+            aurora2.style.background = `radial-gradient(circle, ${color2} 0%, transparent 70%)`;
+        }
+
+        async function executeInference() {
+            const textarea = document.getElementById("rawTextInput");
+            const textValue = textarea.value.trim();
+
+            if (!textValue) {
+                alert("Please enter a sentence to evaluate.");
+                textarea.focus();
+                return;
+            }
+
+            const body = document.body;
+            const inputPanel = document.getElementById("inputPanel");
+            const loadingPanel = document.getElementById("loadingPanel");
+            const resultsPanel = document.getElementById("resultsPanel");
+            const loadingText = document.getElementById("loadingStateText");
+
+            // Step 1: Input -> Loading Transition
+            inputPanel.classList.add("fade-out-up");
+
+            setTimeout(() => {
+                inputPanel.style.display = "none";
+                inputPanel.classList.remove("fade-out-up");
+
+                loadingPanel.style.display = "flex";
+                loadingPanel.classList.add("fade-in-up");
+                body.className = "state-loading";
+            }, 300);
+
+            // Cycle loading descriptors
+            const phrases = [
+                "Sanitizing linguistic corpus...",
+                "Collapsing character structures...",
+                "Calculating self-attention coordinates...",
+                "Running multi-label RoBERTa layers...",
+                "Applying validation threshold filters..."
+            ];
+            let phraseIdx = 0;
+            const phraseInterval = setInterval(() => {
+                phraseIdx = (phraseIdx + 1) % phrases.length;
+                loadingText.textContent = phrases[phraseIdx];
+            }, 600);
+
+            // Reset stepper states
+            const nodes = ["node1", "node2", "node3", "node4"];
+            nodes.forEach(id => document.getElementById(id).className = "step-node");
+            document.getElementById("stepConnectorLine").style.width = "0%";
+
+            try {
+                const response = await fetch("/predict", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: textValue })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || "Prediction request failed.");
+                }
+
+                const data = await response.json();
+
+                // Fetch details
+                const primaryEmotion = data.emotion;
+                const scheme = THEME_MAPPING[primaryEmotion] || THEME_MAPPING.neutral;
+
+                // Configure results layout properties
+                const centerpieceCard = document.getElementById("centerpieceCard");
+                centerpieceCard.setAttribute("data-theme", scheme.theme);
+                updateAuroras(scheme.theme);
+
+                // Populate text diff
+                document.getElementById("diffOriginal").textContent = `"${data.original_text}"`;
+                document.getElementById("diffNormalized").textContent = `"${data.normalized_text}"`;
+
+                // Populate Signals List
+                const signalsList = document.getElementById("signalsList");
+                signalsList.innerHTML = "";
+                if (data.signals && data.signals.length > 0) {
+                    data.signals.forEach(sig => {
+                        signalsList.insertAdjacentHTML("beforeend", `<span class="signal-tag"><span class="signal-dot"></span>${sig}</span>`);
+                    });
+                } else {
+                    signalsList.insertAdjacentHTML("beforeend", `<span class="signal-tag normal-tag"><span class="signal-dot"></span>Standard Syntax</span>`);
+                }
+
+                // Populate Primary visual properties
+                document.getElementById("primaryEmotionName").textContent = primaryEmotion.toUpperCase();
+                document.getElementById("primaryDescription").textContent = scheme.desc;
+                document.getElementById("primaryEmoji").textContent = scheme.emoji;
+
+                // Populate Secondary Chart rows
+                const chartWrapper = document.getElementById("emotionsChartList");
+                chartWrapper.innerHTML = ""; // reset
+
+                data.emotions.forEach((item, index) => {
+                    const itemScheme = THEME_MAPPING[item.emotion] || THEME_MAPPING.neutral;
+                    const isPrimary = index === 0;
+
+                    const rowHTML = `
+                        <div class="chart-row ${isPrimary ? 'primary-row' : ''}">
+                            <div class="row-label">
+                                <span class="row-emoji">${itemScheme.emoji}</span>
+                                <span class="row-name">${item.emotion}</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 0%; --accent-color: ${isPrimary ? 'var(--theme-color)' : '#475569'};" id="fillBar_${index}"></div>
+                            </div>
+                            <span class="row-val" id="valSpan_${index}">0%</span>
+                        </div>
+                    `;
+                    chartWrapper.insertAdjacentHTML("beforeend", rowHTML);
+                });
+
+                // Trigger Stepper line and active nodes animation in loading panel sequentially
+                const runStepper = () => {
+                    return new Promise((resolve) => {
+                        const line = document.getElementById("stepConnectorLine");
+                        setTimeout(() => { document.getElementById("node1").classList.add("active"); line.style.width = "33%"; }, 100);
+                        setTimeout(() => { document.getElementById("node2").classList.add("active"); line.style.width = "66%"; }, 350);
+                        setTimeout(() => { document.getElementById("node3").classList.add("active"); line.style.width = "100%"; }, 600);
+                        setTimeout(() => { document.getElementById("node4").classList.add("active"); resolve(); }, 850);
+                    });
+                };
+
+                // Wait slightly for stepper visuals
+                await runStepper();
+
+                // Step 2: Loading -> Results Transition
+                clearInterval(phraseInterval);
+                loadingPanel.classList.add("fade-out-up");
+
+                setTimeout(() => {
+                    loadingPanel.style.display = "none";
+                    loadingPanel.classList.remove("fade-out-up");
+
+                    resultsPanel.style.display = "block";
+                    resultsPanel.classList.add("fade-in-up");
+                    body.className = "state-result";
+
+                    // Trigger count-ups and progress bar extensions
+                    animateValue(document.getElementById("primaryScore"), 0, Math.round(data.confidence), 1000);
+
+                    data.emotions.forEach((item, index) => {
+                        setTimeout(() => {
+                            const fill = document.getElementById(`fillBar_${index}`);
+                            const val = document.getElementById(`valSpan_${index}`);
+                            const target = Math.round(item.confidence);
+
+                            // Extend bar
+                            if (fill) fill.style.width = `${target}%`;
+                            // Animate value
+                            if (val) animateValue(val, 0, target, 800);
+                        }, index * 100);
+                    });
+
+                    setTimeout(() => {
+                        resultsPanel.classList.remove("fade-in-up");
+                    }, 400);
+
+                }, 300);
+
+            } catch (err) {
+                clearInterval(phraseInterval);
+                console.error(err);
+                alert(err.message || "Failed to communicate with the emotion evaluation pipeline. Please retry.");
+
+                // Return immediately to input
+                loadingPanel.style.display = "none";
+                inputPanel.style.display = "block";
+                body.className = "state-input";
+            } finally {
+                btnText.textContent = "Analyze Emotion";
+            }
+        }
+    </script>
+</body>
+
+</html>
